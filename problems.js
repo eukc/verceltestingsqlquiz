@@ -1,0 +1,352 @@
+/* ------------------------------------------------------------------
+   Question bank + sample data
+   Built from: Lao_MidtermSW2.sql (50 practice items) and
+               MIDTERM_WEEK2.sql  (AS, IN, NOT IN, aggregates, CASE WHEN, DML)
+   ------------------------------------------------------------------ */
+
+// Single source of truth for the preview table AND the practice database
+const SAMPLE_COLUMNS = ['StudentID', 'FirstName', 'LastName', 'Course', 'YearLevel', 'Age', 'Grades', 'Tuition'];
+const SAMPLE_STUDENTS = [
+    [3001, 'Carlo',   'Mendoza',  'BSCS', 1, 18, 87, 25000],
+    [3002, 'Sophia',  'Reyes',    'BSIT', 2, 20, 92, 25000],
+    [3003, 'Miguel',  'Santos',   'BSBA', 3, 21, 78, 23000],
+    [3004, 'Lara',    'Cruz',     'BSIS', 4, 22, 85, 24000],
+    [3005, 'Ethan',   'Navarro',  'BSIT', 1, 19, 74, 25000],
+    [3006, 'Nicole',  'Ramos',    'BSCS', 2, 20, 96, 25000],
+    [3007, 'Adrian',  'Flores',   'BSBA', 3, 21, 81, 23000],
+    [3008, 'Bianca',  'Torres',   'BSIT', 4, 22, 89, 25000],
+    [3009, 'Kevin',   'Bautista', 'BSIS', 2, 20, 73, 24000],
+    [3010, 'Jasmine', 'Aquino',   'BSCS', 3, 21, 94, 25000]
+];
+
+const CATEGORIES = [
+    { id: 'as',     label: 'AS (Alias)' },
+    { id: 'in',     label: 'IN / NOT IN' },
+    { id: 'count',  label: 'COUNT' },
+    { id: 'sum',    label: 'SUM' },
+    { id: 'avg',    label: 'AVG' },
+    { id: 'minmax', label: 'MIN / MAX' },
+    { id: 'mixed',  label: 'Combination' },
+    { id: 'dml',    label: 'DML / DDL' }
+];
+
+/*
+  P(category, topic, title, description, solution, extra)
+  extra (all optional):
+    type     'query' (default) | 'dml' (compare table after running) | 'text' (pattern match, T-SQL only syntax)
+    must     [[regex, 'label'], ...]  things the answer must literally use (e.g. the IN operator)
+    note     explanation shown together with the solution
+    hint     custom hint (otherwise one is generated from the solution)
+    equals / contains   used by type 'text' (compared with spaces, comments and ; removed)
+*/
+let _nextId = 0;
+function P(category, topic, title, desc, solution, extra) {
+    return Object.assign({ id: ++_nextId, category, topic, title, desc, solution, type: 'query' }, extra || {});
+}
+
+const MUST_IN     = [/\bIN\s*\(/i, 'the IN operator'];
+const MUST_NOT_IN = [/\bNOT\s+IN\s*\(/i, 'the NOT IN operator'];
+const MUST_OR     = [/\bOR\b/i, 'OR'];
+const MUST_CASE   = [/\bCASE\b/i, 'CASE WHEN'];
+
+const PROBLEMS = [
+    /* ---------------- AS (alias) ---------------- */
+    P('as', 'Alias (AS)', 'Rename FirstName',
+        'Display the FirstName column and rename the result as Fname.',
+        'SELECT FirstName AS Fname FROM Students;',
+        { note: 'AS = alias = a temporary, readable name for the result column.' }),
+    P('as', 'Alias (AS)', 'Alias on multiple columns',
+        'Display the FirstName column as Fname and the LastName column as Lname, in one query.',
+        'SELECT FirstName AS Fname, LastName AS Lname FROM Students;',
+        { note: 'Every column needs its own AS. "SELECT FirstName, LastName AS Fname" only renames LastName (the "maling paraan" example).' }),
+    P('as', 'Alias (AS)', 'Alias with spaces',
+        'Display the StudentID column and rename the result as STUDENT ID (with a space).',
+        "SELECT StudentID AS 'STUDENT ID' FROM Students;",
+        { note: 'An alias that contains a space must be wrapped in single quotes.' }),
+    P('as', 'Alias (AS)', 'Alias with numbers',
+        'Display the LastName column and rename the result as 74ZTN4ME.',
+        "SELECT LastName AS '74ZTN4ME' FROM Students;",
+        { note: 'If the alias has numbers in it, put it inside single quotes too.' }),
+    P('as', 'Alias (AS)', 'Rename FirstName to StudentName',
+        'Display the FirstName column and rename the result as StudentName.',
+        'SELECT FirstName AS StudentName FROM Students;'),
+    P('as', 'Alias (AS)', 'Rename Grades to StudentGrade',
+        'Display the Grades column and rename the result as StudentGrade.',
+        'SELECT Grades AS StudentGrade FROM Students;'),
+    P('as', 'Alias (AS)', 'Rename Age to StudentAge',
+        'Display the Age column and rename the result as StudentAge.',
+        'SELECT Age AS StudentAge FROM Students;'),
+    P('as', 'Alias (AS)', 'Rename Course to StudentCourse',
+        'Display the Course column and rename the result as StudentCourse.',
+        'SELECT Course AS StudentCourse FROM Students;'),
+    P('as', 'Alias (AS)', 'Rename Tuition to TuitionAmount',
+        'Display the Tuition column and rename the result as TuitionAmount.',
+        'SELECT Tuition AS TuitionAmount FROM Students;'),
+
+    /* ---------------- IN / NOT IN ---------------- */
+    P('in', 'IN', 'IN with text values',
+        'Use IN to display all columns of the BSIT and BSCS students.',
+        "SELECT * FROM Students WHERE Course IN ('BSIT', 'BSCS');",
+        { must: [MUST_IN], note: 'IN checks whether a value matches any value in the list.' }),
+    P('in', 'IN vs OR', 'Same result using OR',
+        'Display all columns of the BSIT and BSCS students WITHOUT using IN (use OR instead).',
+        "SELECT * FROM Students WHERE Course = 'BSIT' OR Course = 'BSCS';",
+        { must: [MUST_OR] }),
+    P('in', 'IN', 'IN with number values',
+        'Use IN to display only the 1st year and 4th year students.',
+        'SELECT * FROM Students WHERE YearLevel IN (1, 4);',
+        { must: [MUST_IN], note: 'Numbers do not need quotes inside IN (...).' }),
+    P('in', 'IN vs OR', 'Number values using OR',
+        'Display only the 1st year and 4th year students WITHOUT using IN.',
+        'SELECT * FROM Students WHERE YearLevel = 1 OR YearLevel = 4;',
+        { must: [MUST_OR] }),
+    P('in', 'NOT IN', 'NOT IN with text values',
+        'Use NOT IN to display all students who are not BSIT and not BSCS.',
+        "SELECT * FROM Students WHERE Course NOT IN ('BSIT', 'BSCS');",
+        { must: [MUST_NOT_IN], note: 'NOT IN returns the opposite: everything that is not in the list.' }),
+    P('in', 'NOT IN', 'NOT IN with number values',
+        'Use NOT IN to display all students who are not in 1st year and not in 3rd year.',
+        'SELECT * FROM Students WHERE YearLevel NOT IN (1, 3);',
+        { must: [MUST_NOT_IN] }),
+    P('in', 'IN + SUM', 'SUM of grades with IN',
+        "Use IN to compute the total grades of only the 1st year and 4th year students. Name the result '1st Yr and 4th Yr Grades'.",
+        "SELECT SUM(Grades) AS '1st Yr and 4th Yr Grades' FROM Students WHERE YearLevel IN (1, 4);",
+        { must: [MUST_IN] }),
+    P('in', 'IN + AVG', 'AVG of YearLevel with IN',
+        "Use IN to display the average YearLevel of the BSIT and BSCS students. Name the result 'Avg BSIT BSCS Year'.",
+        "SELECT AVG(YearLevel) AS 'Avg BSIT BSCS Year' FROM Students WHERE Course IN ('BSIT', 'BSCS');",
+        { must: [MUST_IN] }),
+
+    /* ---------------- COUNT ---------------- */
+    P('count', 'COUNT()', 'Count all students (no alias)',
+        'Display how many students are in the table. No alias is needed.',
+        'SELECT COUNT(*) FROM Students;',
+        { note: 'COUNT(*) counts every row. COUNT(Column) skips NULL values in that column.' }),
+    P('count', 'COUNT()', 'Total students recorded',
+        'How many students are recorded in the table? Use the result name TotalStudents.',
+        'SELECT COUNT(*) AS TotalStudents FROM Students;'),
+    P('count', 'COUNT()', 'Count a column',
+        'How many grades are recorded in the table? Use the result name TotalGrades.',
+        'SELECT COUNT(Grades) AS TotalGrades FROM Students;'),
+    P('count', 'COUNT() + WHERE', 'Count with a quoted alias',
+        "How many students are in BSIT? Use the result name 'BSIT Students'.",
+        "SELECT COUNT(*) AS 'BSIT Students' FROM Students WHERE Course = 'BSIT';"),
+    P('count', 'COUNT() + WHERE', 'Students in Year 1',
+        'How many students are in Year 1? Use the result name Year1Students.',
+        'SELECT COUNT(*) AS Year1Students FROM Students WHERE YearLevel = 1;'),
+    P('count', 'COUNT() + WHERE', 'Students in Year 2',
+        'How many students are in Year 2? Use the result name Year2Students.',
+        'SELECT COUNT(*) AS Year2Students FROM Students WHERE YearLevel = 2;'),
+    P('count', 'COUNT() + WHERE', 'Grade greater than 90',
+        'How many students have a grade greater than 90? Use the result name StudentsAbove90.',
+        'SELECT COUNT(Grades) AS StudentsAbove90 FROM Students WHERE Grades > 90;',
+        { note: '"Greater than 90" uses > and leaves out 90 itself.' }),
+    P('count', 'COUNT() + WHERE', 'Grade of 90 or higher',
+        'How many students have a grade of 90 or higher? Use the result name HighGradeStudents.',
+        'SELECT COUNT(Grades) AS HighGradeStudents FROM Students WHERE Grades >= 90;',
+        { note: '"90 or higher" uses >= so 90 is included.' }),
+    P('count', 'COUNT() + WHERE', 'Grade below 80',
+        'How many students have a grade below 80? Use the result name LowGradeStudents.',
+        'SELECT COUNT(Grades) AS LowGradeStudents FROM Students WHERE Grades < 80;'),
+    P('count', 'COUNT() + WHERE', 'Younger than 20',
+        'How many students are younger than 20? Use the result name StudentsUnder20.',
+        'SELECT COUNT(Age) AS StudentsUnder20 FROM Students WHERE Age < 20;'),
+    P('count', 'COUNT() + WHERE', 'Exactly 20 years old',
+        'How many students are 20 years old? Use the result name Age20Students.',
+        'SELECT COUNT(Age) AS Age20Students FROM Students WHERE Age = 20;'),
+    P('count', 'COUNT() + WHERE', 'Tuition of 25000',
+        'How many students have a tuition fee of 25000? Use the result name StudentsWith25000Tuition.',
+        'SELECT COUNT(Tuition) AS StudentsWith25000Tuition FROM Students WHERE Tuition = 25000;'),
+    P('count', 'COUNT() + WHERE', 'Grade below 75',
+        'How many students have a grade below 75? Use the result name StudentsBelow75.',
+        'SELECT COUNT(Grades) AS StudentsBelow75 FROM Students WHERE Grades < 75;'),
+
+    /* ---------------- SUM ---------------- */
+    P('sum', 'SUM()', 'Total of all grades',
+        'What is the total of all student grades? Use the result name TotalGrades.',
+        'SELECT SUM(Grades) AS TotalGrades FROM Students;',
+        { note: 'SUM = "how much in total?"' }),
+    P('sum', 'SUM()', 'Total tuition fee',
+        'What is the total tuition fee of all students? Use the result name TotalTuition.',
+        'SELECT SUM(Tuition) AS TotalTuition FROM Students;'),
+    P('sum', 'SUM() + WHERE', 'BSIT total tuition',
+        'What is the total tuition fee of BSIT students? Use the result name BSITTuition.',
+        "SELECT SUM(Tuition) AS BSITTuition FROM Students WHERE Course = 'BSIT';"),
+    P('sum', 'SUM() + WHERE', 'Year 3 total grade',
+        'What is the total of the grades of Year 3 students? Use the result name Year3TotalGrade.',
+        'SELECT SUM(Grades) AS Year3TotalGrade FROM Students WHERE YearLevel = 3;'),
+    P('sum', 'SUM() + WHERE', 'Year 1 total tuition',
+        'What is the total tuition fee of Year 1 students? Use the result name Year1Tuition.',
+        'SELECT SUM(Tuition) AS Year1Tuition FROM Students WHERE YearLevel = 1;'),
+    P('sum', 'SUM() + WHERE', 'Total of grades 80 and up',
+        'What is the total grade of students whose grade is 80 or higher? Use the result name TotalGrades80Above.',
+        'SELECT SUM(Grades) AS TotalGrades80Above FROM Students WHERE Grades >= 80;'),
+    P('sum', 'SUM() + WHERE', 'BSCS total tuition',
+        'What is the total tuition fee of students whose course is BSCS? Use the result name BSCSTuition.',
+        "SELECT SUM(Tuition) AS BSCSTuition FROM Students WHERE Course = 'BSCS';"),
+    P('sum', 'SUM() + WHERE', 'Year 2 total grade',
+        'What is the total grade of students in Year 2? Use the result name Year2TotalGrade.',
+        'SELECT SUM(Grades) AS Year2TotalGrade FROM Students WHERE YearLevel = 2;'),
+    P('sum', 'SUM() + WHERE', 'Tuition equal to 24000',
+        'What is the total tuition fee of students whose tuition fee is 24000? Use the result name Total24000Tuition.',
+        'SELECT SUM(Tuition) AS Total24000Tuition FROM Students WHERE Tuition = 24000;'),
+    P('sum', 'SUM() + WHERE', 'Age 21 total grade',
+        'What is the total grade of students who are 21 years old? Use the result name Age21TotalGrade.',
+        'SELECT SUM(Grades) AS Age21TotalGrade FROM Students WHERE Age = 21;'),
+    P('sum', 'SUM() + WHERE', 'BSBA total tuition',
+        'What is the total tuition fee of BSBA students? Use the result name BSBATotalTuition.',
+        "SELECT SUM(Tuition) AS BSBATotalTuition FROM Students WHERE Course = 'BSBA';"),
+
+    /* ---------------- AVG ---------------- */
+    P('avg', 'AVG()', 'Average grade',
+        'What is the average grade of all students? Use the result name AverageGrade.',
+        'SELECT AVG(Grades) AS AverageGrade FROM Students;',
+        { note: 'AVG computes the average value of the column.' }),
+    P('avg', 'AVG()', 'Average age',
+        'What is the average age of all students? Use the result name AverageAge.',
+        'SELECT AVG(Age) AS AverageAge FROM Students;'),
+    P('avg', 'AVG()', 'Average tuition',
+        'What is the average tuition fee of all students? Use the result name AverageTuition.',
+        'SELECT AVG(Tuition) AS AverageTuition FROM Students;'),
+    P('avg', 'AVG() + WHERE', 'BSIT average grade',
+        'What is the average grade of BSIT students? Use the result name BSITAverage.',
+        "SELECT AVG(Grades) AS BSITAverage FROM Students WHERE Course = 'BSIT';",
+        { note: 'Do not forget the WHERE. Without it you average every student, not just BSIT.' }),
+    P('avg', 'AVG() + WHERE', 'Year 3 average grade',
+        'What is the average grade of Year 3 students? Use the result name Year3Average.',
+        'SELECT AVG(Grades) AS Year3Average FROM Students WHERE YearLevel = 3;'),
+    P('avg', 'AVG() + WHERE', 'Average of grades 80 and up',
+        'What is the average grade of students with a grade of 80 or higher? Use the result name Average80Above.',
+        'SELECT AVG(Grades) AS Average80Above FROM Students WHERE Grades >= 80;'),
+    P('avg', 'AVG() + WHERE', 'BSCS average grade',
+        'What is the average grade of BSCS students? Use the result name BSCSAverage.',
+        "SELECT AVG(Grades) AS BSCSAverage FROM Students WHERE Course = 'BSCS';"),
+    P('avg', 'AVG() + WHERE', 'Year 2 average grade',
+        'What is the average grade of students in Year 2? Use the result name Year2Average.',
+        'SELECT AVG(Grades) AS Year2Average FROM Students WHERE YearLevel = 2;'),
+    P('avg', 'AVG() + WHERE', 'BSIT average age',
+        'What is the average age of students in BSIT? Use the result name BSITAverageAge.',
+        "SELECT AVG(Age) AS BSITAverageAge FROM Students WHERE Course = 'BSIT';"),
+    P('avg', 'AVG() + WHERE', 'BSBA average tuition',
+        'What is the average tuition fee of BSBA students? Use the result name BSBAAverageTuition.',
+        "SELECT AVG(Tuition) AS BSBAAverageTuition FROM Students WHERE Course = 'BSBA';"),
+    P('avg', 'AVG() + WHERE', 'Age 20 average grade',
+        'What is the average grade of students who are 20 years old? Use the result name Age20AverageGrade.',
+        'SELECT AVG(Grades) AS Age20AverageGrade FROM Students WHERE Age = 20;'),
+
+    /* ---------------- MIN / MAX ---------------- */
+    P('minmax', 'MIN()', 'Lowest grade',
+        'What is the lowest grade in the table? Use the result name LowestGrade.',
+        'SELECT MIN(Grades) AS LowestGrade FROM Students;',
+        { note: 'MIN shows the lowest record.' }),
+    P('minmax', 'MIN()', 'Youngest age',
+        'What is the youngest age in the table? Use the result name YoungestAge.',
+        'SELECT MIN(Age) AS YoungestAge FROM Students;'),
+    P('minmax', 'MIN()', 'Lowest tuition',
+        'What is the lowest tuition fee in the table? Use the result name LowestTuition.',
+        'SELECT MIN(Tuition) AS LowestTuition FROM Students;'),
+    P('minmax', 'MIN() + WHERE', 'Lowest BSIT grade',
+        'What is the lowest grade among BSIT students? Use the result name LowestBSITGrade.',
+        "SELECT MIN(Grades) AS LowestBSITGrade FROM Students WHERE Course = 'BSIT';"),
+    P('minmax', 'MIN() + WHERE', 'Lowest Year 2 grade',
+        'What is the lowest grade among Year 2 students? Use the result name LowestYear2Grade.',
+        'SELECT MIN(Grades) AS LowestYear2Grade FROM Students WHERE YearLevel = 2;'),
+    P('minmax', 'MIN() + WHERE', 'Lowest Year 3 grade',
+        'What is the lowest grade among students in Year 3? Use the result name LowestYear3Grade.',
+        'SELECT MIN(Grades) AS LowestYear3Grade FROM Students WHERE YearLevel = 3;'),
+    P('minmax', 'MAX()', 'Highest grade',
+        'What is the highest grade in the table? Use the result name HighestGrade.',
+        'SELECT MAX(Grades) AS HighestGrade FROM Students;',
+        { note: 'MAX shows the highest record.' }),
+    P('minmax', 'MAX()', 'Oldest age',
+        'What is the oldest age in the table? Use the result name OldestAge.',
+        'SELECT MAX(Age) AS OldestAge FROM Students;'),
+    P('minmax', 'MAX()', 'Highest tuition',
+        'What is the highest tuition fee in the table? Use the result name HighestTuition.',
+        'SELECT MAX(Tuition) AS HighestTuition FROM Students;'),
+    P('minmax', 'MAX() + WHERE', 'Highest BSIT grade',
+        'What is the highest grade among BSIT students? Use the result name HighestBSITGrade.',
+        "SELECT MAX(Grades) AS HighestBSITGrade FROM Students WHERE Course = 'BSIT';"),
+    P('minmax', 'MAX() + WHERE', 'Highest BSCS grade',
+        'What is the highest grade among BSCS students? Use the result name HighestBSCSGrade.',
+        "SELECT MAX(Grades) AS HighestBSCSGrade FROM Students WHERE Course = 'BSCS';"),
+    P('minmax', 'MAX() + WHERE', 'Highest grade at age 21',
+        'What is the highest grade among students who are 21 years old? Use the result name HighestAge21Grade.',
+        'SELECT MAX(Grades) AS HighestAge21Grade FROM Students WHERE Age = 21;'),
+    P('minmax', 'MAX() + WHERE', 'Oldest BSCS student',
+        "Display the age of the OLDEST BSCS student. Name the result Thunderz.",
+        "SELECT MAX(Age) AS Thunderz FROM Students WHERE Course = 'BSCS';"),
+
+    /* ---------------- Combination ---------------- */
+    P('mixed', 'COUNT + AVG', 'Two aggregates in one query',
+        "Display how many students are in the table and their average grade. Name them 'TOTAL STUDENTS' and 'AVERAGE GRADE'.",
+        "SELECT COUNT(*) AS 'TOTAL STUDENTS', AVG(Grades) AS 'AVERAGE GRADE' FROM Students;",
+        { note: 'Separate the columns with a comma and give each its own AS.' }),
+    P('mixed', 'MIN + MAX', 'Youngest and oldest BSIT',
+        "Display the youngest and the oldest age among BSIT students. Name them 'YOUNGEST' and 'OLDEST'.",
+        "SELECT MIN(Age) AS 'YOUNGEST', MAX(Age) AS 'OLDEST' FROM Students WHERE Course = 'BSIT';"),
+    P('mixed', 'MIN + MAX', 'Lowest and highest Year 2 grade',
+        'Display the lowest and the highest grade among Year 2 students. Name them Lowest and Highest.',
+        'SELECT MIN(Grades) AS Lowest, MAX(Grades) AS Highest FROM Students WHERE YearLevel = 2;'),
+    P('mixed', 'COUNT + SUM', 'Count and total tuition of BSIT',
+        'Display how many BSIT students there are and their total tuition fee. Name them BSITCount and BSITTuition.',
+        "SELECT COUNT(*) AS BSITCount, SUM(Tuition) AS BSITTuition FROM Students WHERE Course = 'BSIT';"),
+    P('mixed', 'SUM + AVG + COUNT + IN', 'Three aggregates with IN',
+        'For BSIT and BSCS students only (use IN), display the total tuition, the average tuition and the number of students. Name them TotalTuition, AverageTuition and TotalStudents.',
+        "SELECT SUM(Tuition) AS TotalTuition, AVG(Tuition) AS AverageTuition, COUNT(*) AS TotalStudents FROM Students WHERE Course IN ('BSIT', 'BSCS');",
+        { must: [MUST_IN] }),
+    P('mixed', 'CASE WHEN', 'Conditional aggregation',
+        'In ONE query, display the youngest age among BSIT students and the oldest age among BSCS students. Use CASE WHEN inside the aggregates. Name them YoungestBSIT and OldestBSCS.',
+        "SELECT MIN(CASE WHEN Course = 'BSIT' THEN Age END) AS YoungestBSIT, MAX(CASE WHEN Course = 'BSCS' THEN Age END) AS OldestBSCS FROM Students;",
+        { must: [MUST_CASE], note: 'CASE returns NULL when the condition is false, and MIN/MAX ignore NULL, so each aggregate only sees its own course.' }),
+
+    /* ---------------- DML / DDL ---------------- */
+    P('dml', 'UPDATE', 'Update a student record',
+        "Update the FirstName to 'Viy' and the Course to 'BSBA' for the student whose StudentID is 3001.",
+        "UPDATE Students SET FirstName = 'Viy', Course = 'BSBA' WHERE StudentID = 3001;",
+        { type: 'dml', note: 'StudentID starts at 3001 because of IDENTITY(3001,1). Never forget the WHERE or every row changes.' }),
+    P('dml', 'UPDATE', 'Update many rows',
+        'Change the Tuition of all BSBA students to 24000.',
+        "UPDATE Students SET Tuition = 24000 WHERE Course = 'BSBA';",
+        { type: 'dml' }),
+    P('dml', 'INSERT', 'Insert a new student',
+        "Insert a new student: Mark Lopez, BSIT, YearLevel 1, Age 18, Grades 88, Tuition 25000. (StudentID is generated automatically.)",
+        "INSERT INTO Students (FirstName, LastName, Course, YearLevel, Age, Grades, Tuition)\nVALUES ('Mark', 'Lopez', 'BSIT', 1, 18, 88, 25000);",
+        { type: 'dml', note: 'Do not list StudentID. IDENTITY fills it in.' }),
+    P('dml', 'DELETE', 'Delete some rows',
+        'Delete all BSIT students from the table.',
+        "DELETE FROM Students WHERE Course = 'BSIT';",
+        { type: 'dml' }),
+    P('dml', 'DELETE', 'Delete all rows, keep the table',
+        'Remove every record in the Students table but keep the table itself.',
+        'DELETE FROM Students;',
+        { type: 'dml', note: 'DELETE FROM = "delete laman" (the rows). The empty table still exists.' }),
+    P('dml', 'DROP TABLE', 'Drop the table',
+        'Remove the entire Students table (the rows AND the table itself).',
+        'DROP TABLE Students;',
+        { type: 'text', equals: 'DROPTABLESTUDENTS', note: 'DROP TABLE = "delete lahat". The table is gone, not just empty.' }),
+    P('dml', 'CREATE DATABASE', 'Create and use a database',
+        'Create a database named sw2, then switch to it.',
+        'CREATE DATABASE sw2;\nUSE sw2;',
+        { type: 'text', contains: ['CREATEDATABASESW2', 'USESW2'] }),
+    P('dml', 'CREATE TABLE', 'Create the Students table',
+        'Create the Students table: StudentID INT as PRIMARY KEY with IDENTITY starting at 3001 and increasing by 1; FirstName, LastName and Course as VARCHAR(50); YearLevel, Age, Grades and Tuition as INT.',
+        'CREATE TABLE Students (\n    StudentID INT PRIMARY KEY IDENTITY(3001, 1),\n    FirstName VARCHAR(50),\n    LastName VARCHAR(50),\n    Course VARCHAR(50),\n    YearLevel INT,\n    Age INT,\n    Grades INT,\n    Tuition INT\n);',
+        { type: 'text', contains: ['CREATETABLESTUDENTS(', 'STUDENTIDINTPRIMARYKEYIDENTITY(3001,1)', 'FIRSTNAMEVARCHAR(50)', 'LASTNAMEVARCHAR(50)', 'COURSEVARCHAR(50)', 'YEARLEVELINT', 'AGEINT', 'GRADESINT', 'TUITIONINT)'] })
+];
+
+/* Builds a hint from the keywords the solution needs, unless the question has its own hint. */
+function buildHint(p) {
+    if (p.hint) return p.hint;
+    const s = p.solution.toUpperCase();
+    const words = [];
+    ['COUNT', 'SUM', 'AVG', 'MIN', 'MAX'].forEach(f => { if (new RegExp('\\b' + f + '\\s*\\(').test(s)) words.push(f + '()'); });
+    if (/\bNOT\s+IN\b/.test(s)) words.push('NOT IN');
+    else if (/\bIN\s*\(/.test(s)) words.push('IN');
+    if (/\bCASE\b/.test(s)) words.push('CASE WHEN');
+    ['UPDATE', 'INSERT INTO', 'DELETE FROM', 'DROP TABLE', 'CREATE DATABASE', 'CREATE TABLE'].forEach(k => { if (s.includes(k)) words.push(k); });
+    if (/\bWHERE\b/.test(s)) words.push('WHERE');
+    if (/\bAS\b/.test(s) && p.type === 'query') words.push('AS');
+    if (!words.length) words.push('SELECT ... FROM Students');
+    return 'Keywords you need: ' + words.join(', ');
+}

@@ -1,0 +1,52 @@
+/* Monospace font used by the SQL editor and the feedback panel */
+.editor-font {
+    font-family: 'Consolas', 'Courier New', Courier, monospace;
+}
+
+/* Result tables (query output, expected output, sample data) */
+.result-wrap {
+    overflow-x: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: #ffffff;
+}
+
+.result-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+}
+
+.result-table th {
+    background: #eef2ff;
+    color: #3730a3;
+    text-align: left;
+    padding: 0.4rem 0.65rem;
+    border-bottom: 1px solid #c7d2fe;
+    white-space: nowrap;
+}
+
+.result-table td {
+    padding: 0.35rem 0.65rem;
+    border-bottom: 1px solid #f3f4f6;
+    white-space: nowrap;
+}
+
+.result-table tbody tr:nth-child(even) {
+    background: #f9fafb;
+}
+
+.result-table .null-cell {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+.result-table .empty-cell {
+    text-align: center;
+    color: #9ca3af;
+    font-style: italic;
+}
+
+details.sample summary {
+    cursor: pointer;
+}
